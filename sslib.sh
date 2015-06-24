@@ -54,6 +54,13 @@ del_ipt_chains () {
     iptables -D OUTPUT -j $SS_OUT_RULES
     iptables -X $SS_IN_RULES
     iptables -X $SS_OUT_RULES
+
+    ip6tables -F $SS_IN_RULES
+    ip6tables -F $SS_OUT_RULES
+    ip6tables -D INPUT -j $SS_IN_RULES
+    ip6tables -D OUTPUT -j $SS_OUT_RULES
+    ip6tables -X $SS_IN_RULES
+    ip6tables -X $SS_OUT_RULES
 }
 init_ipt_chains () {
     del_ipt_chains 2> /dev/null
@@ -61,6 +68,11 @@ init_ipt_chains () {
     iptables -N $SS_OUT_RULES
     iptables -A INPUT -j $SS_IN_RULES
     iptables -A OUTPUT -j $SS_OUT_RULES
+
+    ip6tables -N $SS_IN_RULES
+    ip6tables -N $SS_OUT_RULES
+    ip6tables -A INPUT -j $SS_IN_RULES
+    ip6tables -A OUTPUT -j $SS_OUT_RULES
 }
 
 add_rules () {
@@ -69,6 +81,11 @@ add_rules () {
     iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
     iptables -A $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
     iptables -A $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
+
+    ip6tables -A $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
+    ip6tables -A $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
+    ip6tables -A $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
+    ip6tables -A $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
 }
 
 add_reject_rules () {
@@ -77,6 +94,11 @@ add_reject_rules () {
     iptables -A $SS_OUT_RULES -p tcp --sport $PORT -j REJECT
     iptables -A $SS_IN_RULES -p udp --dport $PORT -j REJECT
     iptables -A $SS_OUT_RULES -p udp --sport $PORT -j REJECT
+
+    ip6tables -A $SS_IN_RULES -p tcp --dport $PORT -j REJECT
+    ip6tables -A $SS_OUT_RULES -p tcp --sport $PORT -j REJECT
+    ip6tables -A $SS_IN_RULES -p udp --dport $PORT -j REJECT
+    ip6tables -A $SS_OUT_RULES -p udp --sport $PORT -j REJECT
 }
 
 del_rules () {
@@ -85,6 +107,11 @@ del_rules () {
     iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
     iptables -D $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
     iptables -D $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
+
+    ip6tables -D $SS_IN_RULES -p tcp --dport $PORT -j ACCEPT
+    ip6tables -D $SS_OUT_RULES -p tcp --sport $PORT -j ACCEPT
+    ip6tables -D $SS_IN_RULES -p udp --dport $PORT -j ACCEPT
+    ip6tables -D $SS_OUT_RULES -p udp --sport $PORT -j ACCEPT
 }
 
 del_reject_rules () {
@@ -93,11 +120,19 @@ del_reject_rules () {
     iptables -D $SS_OUT_RULES -p tcp --sport $PORT -j REJECT
     iptables -D $SS_IN_RULES -p udp --dport $PORT -j REJECT
     iptables -D $SS_OUT_RULES -p udp --sport $PORT -j REJECT
+
+    ip6tables -D $SS_IN_RULES -p tcp --dport $PORT -j REJECT
+    ip6tables -D $SS_OUT_RULES -p tcp --sport $PORT -j REJECT
+    ip6tables -D $SS_IN_RULES -p udp --dport $PORT -j REJECT
+    ip6tables -D $SS_OUT_RULES -p udp --sport $PORT -j REJECT
 }
 
 list_rules () {
     iptables -vnx -L $SS_IN_RULES
     iptables -vnx -L $SS_OUT_RULES
+
+    ip6tables -vnx -L $SS_IN_RULES
+    ip6tables -vnx -L $SS_OUT_RULES
 }
 
 add_new_rules () {
@@ -288,9 +323,19 @@ get_traffic_from_iptables () {
            port=$NF;
            tr[port]+=trans;
         }
+        '
+
+        echo "$(ip6tables -nvx -L $SS_IN_RULES)" "$(ip6tables -nvx -L $SS_OUT_RULES)" |
+        sed -nr '/ [sd]pt:[0-9]{1,5}$/ s/[sd]pt:([0-9]{1,5})/\1/p' |
+        awk '
+        {
+            trans=$2;
+            port=$NF;
+            tr[port]+=trans;
+        }
         END {
             for(port in tr) {
-                printf("'$TRA_FORMAT'", port, tr[port]) 
+                printf("'$TRA_FORMAT'", port, tr[port])
             }
         }
         '

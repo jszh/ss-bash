@@ -21,6 +21,8 @@
 # SOFTWARE.
 
 SOURCE="${BASH_SOURCE[0]}"
+DEFAULTLIMIT=40G
+
 while [ -h "$SOURCE" ]; do 
       DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
       SOURCE="$(readlink "$SOURCE")"
@@ -204,7 +206,7 @@ check_port_range () {
     fi
 }
 add_user () {
-    if [ "$#" -ne 3 ]; then
+    if [ "$#" -ne 2 ] && [ "$#" -ne 3 ]; then
         wrong_para_prompt;
         return 1
     fi
@@ -216,7 +218,11 @@ add_user () {
         return 1
     fi
     PWORD=$2
-    TLIMIT=$3
+    if [ "$#" -ne 3 ]; then
+        TLIMIT=$DEFAULTLIMIT
+    else  
+        TLIMIT=$3
+    fi
     TLIMIT=`bytes2gb $TLIMIT`
     if [ ! -e $USER_FILE ]; then
         echo "\
@@ -232,6 +238,14 @@ add_user () {
     if [ $? -eq 0 ]; then
         echo "\
 $PORT $PWORD $TLIMIT" >> $USER_FILE;
+        SECURE_DATE=$(date +%d)
+        if [ $SECURE_DATE -gt 28 ]; then
+            SECURE_DATE=28
+        fi
+        (crontab -l ; echo "\
+# SS_$PORT
+$(date +%M) $(date +%H) $SECURE_DATE * * $DIR/ss/ss-bash/ssadmin.sh rlim $PORT
+") | crontab -
     else
         echo "用户已存在!"
         return 1
@@ -262,6 +276,7 @@ del_user () {
     fi
     if [ -e $USER_FILE ]; then
         sed -i '/^\s*'$PORT'\s/ d' $USER_FILE
+        crontab -l | sed "/^\s*'# SS_$PORT'\s/,+2d" | crontab -
     fi
 # 重新生成配置文件，并加载
     if [ -e $SSSERVER_PID ]; then

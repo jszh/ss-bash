@@ -1,12 +1,12 @@
 ss-bash
 =======
 
-Shadowsocks流量管理脚本
+Shadowsocks 流量管理脚本
 
-* 目前只支持python版Shadowsocks
-* 目前只支持统计ipv4流量
+* 目前只支持 python 版 Shadowsocks
+* 支持统计 IPv4 和 IPv6 流量
 
 [使用说明][User Manual]
 
 
-[User Manual]:    https://github.com/hellofwy/ss-bash/wiki
+[User Manual]: https://github.com/hellofwy/ss-bash/wiki
